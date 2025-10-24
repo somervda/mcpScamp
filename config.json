@@ -1,3 +1,4 @@
 {
-  "gps_file": "c:/temp/gps.json"
+  "gps_file": "/home/pi/gps.json",
+  "scamp_db": "/home/pi/mcpScamp/scamp.db"
 }
