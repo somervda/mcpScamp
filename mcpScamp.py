@@ -12,7 +12,7 @@ from config_reader import ConfigReader
 
 
 config=ConfigReader("config.json")
-mcp = FastMCP("MCP Scamp")
+mcp = FastMCP("MCP Scamp",port=8100,host="0.0.0.0")
 
 
 
@@ -159,6 +159,37 @@ def get_state_parks_by_distance(miles: int) -> str:
         parkAndDistance.append(park)
     return json.dumps(parkAndDistance)
 
+@mcp.tool()
+def get_rv_parks_by_distance(miles: int ) -> str:
+    """
+    Gets a list of all the RV parks in Pennsylvania,New York,
+     Delaware and Ohio by distance in miles from my current location
+    Args:
+        miles: An integer representing how many miles distance 
+    """
+
+    print(get_rv_parks_by_distance,miles)
+    location=json.loads(get_location())
+    print("location",location)
+    lat=float(location.get("latitude",0))
+    long=float(location.get("longitude",0))
+    print("lat",lat,"long",long)
+    min_lat, max_lat, min_lon, max_lon = lat_lon_range(lat,long,miles)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    select =   "SELECT * FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    print(select)
+    cursor.execute(select)
+    rows = cursor.fetchall()
+    conn.close()
+    parks = [dict(row) for row in rows]  # Convert to list of dictionaries items
+    parkAndDistance=[]
+    for park in parks:
+        park['distance']=distance_between_points(lat,long,park.get("latitude"),park.get("longitude"))
+        parkAndDistance.append(park)
+    return json.dumps(parkAndDistance)
+
+
 if __name__ == '__main__':
     # print(get_state_parks_by_distance(20))
-    mcp.run()
+    mcp.run(transport="streamable-http")

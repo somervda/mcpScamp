@@ -1,0 +1,17 @@
+[Unit]
+Description=Scamp RV tools
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/mcpScamp
+# Path to the python interpreter in your virtual environment
+ExecStart=/home/pi/mcpScamp/.venv/bin/python mcpScamp.py 
+Restart=always
+RestartSec=30
+
+
+[Install]
+WantedBy=multi-user.target

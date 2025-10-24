@@ -12,6 +12,13 @@ class ConfigReader:
         if self._config_data is None:
             self._load_config()
         return self._config_data.get("gps_file")
+
+    @property
+    def scamp_db(self):
+        """Get the Scamp DB path from config."""
+        if self._config_data is None:
+            self._load_config()
+        return self._config_data.get("scamp_db")
     
     def _load_config(self):
         """Load configuration from JSON file."""
