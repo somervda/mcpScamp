@@ -4,8 +4,10 @@ import math
 import json
 import os
 import sys
+import pytz
 
-
+from datetime import datetime,timezone
+from timezonefinder import TimezoneFinder
 from mcp.server.fastmcp import FastMCP
 from config_reader import ConfigReader
 
@@ -79,7 +81,9 @@ def lat_lon_range(latitude, longitude, distance_miles):
     return (min_lat, max_lat, min_lon, max_lon)
 
 def get_db_connection():
-    conn = sqlite3.connect("scamp.db")
+    scamp_db_file = config.scamp_db
+    print("scamp_db_file",scamp_db_file)
+    conn = sqlite3.connect(scamp_db_file)
     conn.row_factory = sqlite3.Row  # Enables dict-like access to rows
     return conn
 
@@ -89,15 +93,15 @@ def get_location() -> str:
     """Return the current location as latitude and longitude. Timestamp is included 
        for information on when the location was last determined."""
     try:
-        file_name = config.gps_file
-        with open(file_name, "r") as f:
-            data = json.load(f)
+        gps_file_name = config.gps_file
+        with open(gps_file_name, "r") as f:
+            gps_data = json.load(f)
         
         # Extract values
-        latitude = round(data.get("latitude"),5)
-        longitude = round(data.get("longitude"),5)
-        altitude = data.get("altitude")
-        timestamp = data.get("timestamp")
+        latitude = round(gps_data.get("latitude"),5)
+        longitude = round(gps_data.get("longitude"),5)
+        altitude = gps_data.get("altitude")
+        timestamp = gps_data.get("timestamp")
 
         return json.dumps({
             "latitude": latitude,
@@ -107,7 +111,7 @@ def get_location() -> str:
         })
     
     except FileNotFoundError:
-        print(f"Error: {file_name} not found.")
+        print(f"Error: {gps_file_name} not found.")
     except json.JSONDecodeError:
         print("Error: Invalid JSON format.")
 
@@ -168,16 +172,14 @@ def get_rv_parks_by_distance(miles: int ) -> str:
         miles: An integer representing how many miles distance 
     """
 
-    print(get_rv_parks_by_distance,miles)
+    print("get_rv_parks_by_distance:",miles)
     location=json.loads(get_location())
-    print("location",location)
     lat=float(location.get("latitude",0))
     long=float(location.get("longitude",0))
-    print("lat",lat,"long",long)
     min_lat, max_lat, min_lon, max_lon = lat_lon_range(lat,long,miles)
     conn = get_db_connection()
     cursor = conn.cursor()
-    select =   "SELECT * FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    select =   "SELECT name,longitude,latitude,city,st FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
     print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
@@ -189,7 +191,52 @@ def get_rv_parks_by_distance(miles: int ) -> str:
         parkAndDistance.append(park)
     return json.dumps(parkAndDistance)
 
+@mcp.tool()
+def get_rv_parks_details_by_name(name: str ) -> str:
+    """
+    Gets a detailed information about a specific RV park by name
+    Args:
+        name: The name of the park   
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    select =   "SELECT * FROM rv_park where name = '" + name + "'"
+    print(select)
+    cursor.execute(select)
+    rows = cursor.fetchall()
+    conn.close()
+    park = [dict(row) for row in rows]  # Convert to list of dictionaries items
+    return json.dumps(park)
+
+# Tool: return current UTC time
+@mcp.tool()
+def get_UTC_time() -> str:
+    """Return the current UTC time as an ISO 8601 string."""
+    print("get_UTC_time")
+    return datetime.now(timezone.utc).replace(tzinfo=pytz.utc).isoformat()
+
+# Tool: return local time by latitude & longitude
+@mcp.tool()
+def get_local_time() -> str:
+    """
+    Return the local time based on the current location timezone.
+    Time is returned as an ISO 8601 string.
+    """
+    print("get_local_time")
+    location=json.loads(get_location())
+    latitude=float(location.get("latitude",0))
+    longitude=float(location.get("longitude",0))
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lng=longitude, lat=latitude)
+
+    if not tz_name:
+        raise ValueError("Could not determine timezone for given coordinates")
+
+    tz = pytz.timezone(tz_name)
+    utc_now = datetime.now(timezone.utc).replace(tzinfo=pytz.utc)
+    local_time = utc_now.astimezone(tz)
+    return local_time.isoformat()
 
 if __name__ == '__main__':
-    # print(get_state_parks_by_distance(20))
+    # print(get_UTC_time())
     mcp.run(transport="streamable-http")
