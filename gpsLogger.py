@@ -31,7 +31,7 @@ carryOn=True
 
 
 
-
+altitude=0
 while carryOn:
     try:
         # Open a serial connection
@@ -41,8 +41,10 @@ while carryOn:
                 if line.startswith('$GPGGA'): 
                     msg = pynmea2.parse(line) 
                     # print(repr(msg))
-                    if hasattr(msg, 'num_sats') and hasattr(msg, 'gps_qual'):
-                        print("$GPGGA num_sats:",msg.num_sats, " gps_qual:",msg.gps_qual)
+                    if hasattr(msg, 'num_sats') and hasattr(msg, 'gps_qual') and hasattr(msg, 'altitude'):
+                        print("$GPGGA num_sats:",msg.num_sats, " gps_qual:",msg.gps_qual, " altitude:",msg.altitude)
+                        altitude=msg.altitude
+
                 if line.startswith('$GPRMC'):  # Check for NMEA sentences you are interested in
                     msg = pynmea2.parse(line) 
                     print("$GPRMC",repr(msg))
@@ -55,6 +57,7 @@ while carryOn:
                                     "timestamp" :str(msg.datetime),
                                     "latitude": msg.latitude,
                                     "longitude": msg.longitude,
+                                    "altitude":altitude
                                 }
                                 with open(directory_path + "/gps.json", "w", encoding="utf-8") as f:
                                     json.dump(gps, f, indent=4) # indent for pretty printing
