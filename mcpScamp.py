@@ -89,9 +89,11 @@ def get_db_connection():
 
 # Tool: return location as latitude and longitude
 @mcp.tool()
-def get_location() -> str:
-    """Return the current location as latitude and longitude. Timestamp is included 
-       for information on when the location was last determined."""
+def get_my_location() -> dict:
+    """Return the current location as latitude, longitude and altitude(meters).
+       Only use this for finding my current location, not for other locations.
+       Timestamp is included for information on when the location was last determined."""
+    print("get_location")
     try:
         gps_file_name = config.gps_file
         with open(gps_file_name, "r") as f:
@@ -103,12 +105,12 @@ def get_location() -> str:
         altitude = gps_data.get("altitude")
         timestamp = gps_data.get("timestamp")
 
-        return json.dumps({
+        return {
             "latitude": latitude,
             "longitude": longitude,
             "altitude": altitude,
             "timestamp": timestamp
-        })
+            }
     
     except FileNotFoundError:
         print(f"Error: {gps_file_name} not found.")
@@ -118,14 +120,14 @@ def get_location() -> str:
 @mcp.tool()
 def get_state_parks_details_by_name(name: str ) -> str:
     """
-    Gets a detailed information about a specific pennsylvania state park by name
+    Gets a detailed information about a specific pennsylvania state park by name.
     Args:
         name: The name of the park   
     """
+    print("get_state_parks_details_by_name",name)
     conn = get_db_connection()
     cursor = conn.cursor()
     select =   "SELECT * FROM pa_state_park where name = '" + name + "'"
-    print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
     conn.close()
@@ -133,23 +135,51 @@ def get_state_parks_details_by_name(name: str ) -> str:
     return json.dumps(park)
 
 @mcp.tool()
-def get_state_parks_by_distance(miles: int) -> str:
+def get_state_parks_by_distance_from_my_location(miles: int, rvOnly:bool=False,includeDetails:bool=False) -> str:
     """
-    Gets a list of pennsylvania state parks by distance in miles from my current location. 
-    Park details includes information about if the park has RV camping.
+    Find Pennsylvania state parks within miles of the current location. 
+    Results are calculated by straight-line distance (miles). Use when searching near the current device location.
     Args:
-        miles: An integer representing how many miles distance 
+        miles(number, required):  Search radius in miles. 
+        rvOnly(boolean, optional): Only parks with RV camping should be included. False by default
+        includeDetails(boolean, optional): If true, include full park details. Default: false
+    Output (array of parks):
+        Always: name (string), distanceMiles (number), hasRvCamping (boolean).
+        If includeDetails=true: address (string), city (string), zip (number), latitude (number), longitude (number), hasOvernight (boolean), hasPavilion (boolean), overview (string), url (string).
     """
-    print(get_state_parks_by_distance,miles)
-    location=json.loads(get_location())
+    print("get_state_parks_by_distance_from_my_current_location",miles)
+    location=get_my_location()
     print("location",location)
     lat=float(location.get("latitude",0))
     long=float(location.get("longitude",0))
-    print("lat",lat,"long",long)
-    min_lat, max_lat, min_lon, max_lon = lat_lon_range(lat,long,miles)
+    return get_state_parks_by_distance_from_any_location(lat,long,miles,rvOnly,includeDetails)
+
+@mcp.tool()
+def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float,miles: int, rvOnly:bool=False,includeDetails:bool=False) -> str:
+    """
+    Find Pennsylvania state parks within miles of the given latitude/longitude. 
+    Results are calculated by straight-line distance (miles). Use when searching near a specified coordinate
+    (not the current device location).
+    Args:
+        latitude (number, required): Decimal degrees (-90 to 90).
+        longitude (number, required): Decimal degrees (-180 to 180).
+        miles(number, required):  Search radius in miles. 
+        rvOnly(boolean, optional): Only parks with RV camping should be included. false by default.
+        includeDetails(boolean, optional): If true, include full park details. Default: false.
+    Output (array of parks):
+        Always: name (string), distanceMiles (number), hasRvCamping (boolean).
+        If includeDetails=true: address (string), city (string), zip (number), latitude (number), longitude (number), hasOvernight (boolean), hasPavilion (boolean), overview (string), url (string).
+    """
+    print("get_state_parks_by_distance_from_any_location",latitude,longitude,miles,rvOnly,includeDetails)
+    min_lat, max_lat, min_lon, max_lon = lat_lon_range(latitude,longitude,miles)
     conn = get_db_connection()
     cursor = conn.cursor()
-    select =   "SELECT name,longitude,latitude,hasRVCamping FROM pa_state_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    if includeDetails:
+        select =   "SELECT * FROM pa_state_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    else:
+        select =   "SELECT name,longitude,latitude,hasRVCamping FROM pa_state_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    if rvOnly:
+        select += " and hasRVCamping==1"
     print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
@@ -157,9 +187,10 @@ def get_state_parks_by_distance(miles: int) -> str:
     parks = [dict(row) for row in rows]  # Convert to list of dictionaries items
     parkAndDistance=[]
     for park in parks:
-        park['distance']=round(distance_between_points(lat,long,park.get("latitude"),park.get("longitude")),2)
-        del park['latitude']
-        del park['longitude']
+        park['distance']=round(distance_between_points(latitude,longitude,park.get("latitude"),park.get("longitude")),2)
+        if not includeDetails:
+            del park['latitude']
+            del park['longitude']
         parkAndDistance.append(park)
     return json.dumps(parkAndDistance)
 
@@ -173,14 +204,13 @@ def get_rv_parks_by_distance(miles: int ) -> str:
     """
 
     print("get_rv_parks_by_distance:",miles)
-    location=json.loads(get_location())
+    location=get_my_location()
     lat=float(location.get("latitude",0))
     long=float(location.get("longitude",0))
     min_lat, max_lat, min_lon, max_lon = lat_lon_range(lat,long,miles)
     conn = get_db_connection()
     cursor = conn.cursor()
     select =   "SELECT name,longitude,latitude,city,st FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
-    print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
     conn.close()
@@ -198,20 +228,42 @@ def get_rv_parks_details_by_name(name: str ) -> str:
     Args:
         name: The name of the park   
     """
+    print("get_rv_parks_details_by_name",name)
     conn = get_db_connection()
     cursor = conn.cursor()
     select =   "SELECT * FROM rv_park where name = '" + name + "'"
-    print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
     conn.close()
     park = [dict(row) for row in rows]  # Convert to list of dictionaries items
     return json.dumps(park)
 
+@mcp.tool()
+def get_location_by_name(name: str,state : str ) -> dict:
+    """
+    Gets the latitude and longitude of a location specified by the name and state of the location
+    Use this for any locations other than finding the current location
+    Args:
+        name: The name of the town, city or geographic point of interest
+        state: The US state containing the named location  
+    """
+    print("get_location_by_name",name,state)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    select =   "SELECT * FROM US where name = LOWER('" + name + "') and state=UPPER('" + state + "')"
+    cursor.execute(select)
+    row = cursor.fetchone()
+    conn.close()
+    location = dict(row) # Convert row to dictionary item
+    del location["U"]
+    del location["name"]
+    del location["state"]
+    return location
+
 # Tool: return current UTC time
 @mcp.tool()
 def get_UTC_time() -> str:
-    """Return the current UTC time as an ISO 8601 string."""
+    """Return the current UTC date and time as an ISO 8601 string."""
     print("get_UTC_time")
     return datetime.now(timezone.utc).replace(tzinfo=pytz.utc).isoformat()
 
@@ -219,11 +271,11 @@ def get_UTC_time() -> str:
 @mcp.tool()
 def get_local_time() -> str:
     """
-    Return the local time based on the current location timezone.
+    Return the local date and time based on the current location timezone.
     Time is returned as an ISO 8601 string.
     """
     print("get_local_time")
-    location=json.loads(get_location())
+    location=get_my_location()
     latitude=float(location.get("latitude",0))
     longitude=float(location.get("longitude",0))
     tf = TimezoneFinder()
@@ -238,5 +290,7 @@ def get_local_time() -> str:
     return local_time.isoformat()
 
 if __name__ == '__main__':
-    # print(get_UTC_time())
+    # print(get_location_by_name('Blue Bell',"pa"))
+    # print(get_location())
+    # print(get_state_parks_by_distance_from_my_location(10,rvOnly=False,includeDetails=True))
     mcp.run(transport="streamable-http")
