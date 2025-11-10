@@ -141,7 +141,7 @@ def get_state_parks_by_distance_from_my_location(miles: int, rvOnly:bool=False,i
     Results are calculated by straight-line distance (miles). Use when searching near the current device location.
     Args:
         miles(number, required):  Search radius in miles. 
-        rvOnly(boolean, optional): Only parks with RV camping should be included. False by default
+        rvOnly(boolean, optional): Only parks with RV camping should be included. Default: false.
         includeDetails(boolean, optional): If true, include full park details. Default: false
     Output (array of parks):
         Always: name (string), distanceMiles (number), hasRvCamping (boolean).
@@ -164,7 +164,7 @@ def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float
         latitude (number, required): Decimal degrees (-90 to 90).
         longitude (number, required): Decimal degrees (-180 to 180).
         miles(number, required):  Search radius in miles. 
-        rvOnly(boolean, optional): Only parks with RV camping should be included. false by default.
+        rvOnly(boolean, optional): Only parks with RV camping should be included. Default: false.
         includeDetails(boolean, optional): If true, include full park details. Default: false.
     Output (array of parks):
         Always: name (string), distanceMiles (number), hasRvCamping (boolean).
@@ -180,7 +180,7 @@ def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float
         select =   "SELECT name,longitude,latitude,hasRVCamping FROM pa_state_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
     if rvOnly:
         select += " and hasRVCamping==1"
-    print(select)
+    # print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
     conn.close()
@@ -195,22 +195,52 @@ def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float
     return json.dumps(parkAndDistance)
 
 @mcp.tool()
-def get_rv_parks_by_distance(miles: int ) -> str:
+def get_rv_parks_by_distance_from_my_location(miles: int , includeDetails:bool=False) -> str:
     """
-    Gets a list of all the RV parks in Pennsylvania,New York,
-     Delaware and Ohio by distance in miles from my current location
+    Find RV parks within miles of my the current location. 
+    Results are calculated by straight-line distance (miles). Use when searching near the current device location.
     Args:
-        miles: An integer representing how many miles distance 
+        miles(number, required):  Search radius in miles. 
+        includeDetails(boolean, optional): If true, include full park details. Default: false
+    Output (array of RV parks):
+        Always: name (string), distanceMiles (number),City,St
+        If includeDetails=true: UID,Name,Est,Address,City,St,zip,Phone,latitude,longitude,Amenities(This includes a relative price indicator using $ signs),RecordID,Web,Booking,Comments,Rating,Reviews
     """
-
-    print("get_rv_parks_by_distance:",miles)
+    print("get_rv_parks_by_distance_from_my_location",miles,includeDetails)
     location=get_my_location()
+    print("location",location)
     lat=float(location.get("latitude",0))
     long=float(location.get("longitude",0))
+    return get_rv_parks_by_distance_from_any_location(lat,long,miles,includeDetails)
+
+@mcp.tool()
+def get_rv_parks_by_distance_from_any_location(latitude:float,longitude:float,miles: int, includeDetails:bool=False) -> str:
+    """
+    Find RV parks within miles of the given latitude/longitude. 
+    Results are calculated by straight-line distance (miles). Use when searching near a specified coordinate
+    (not the current device location).
+    Args:
+        latitude (number, required): Decimal degrees (-90 to 90).
+        longitude (number, required): Decimal degrees (-180 to 180).
+        miles(number, required):  Search radius in miles. 
+        includeDetails(boolean, optional): If true, include full park details. Default: false.
+    Output (array of RV parks):
+        Always: name (string), distanceMiles (number),City,St
+        If includeDetails=true: UID,Name,Est,Address,City,St,zip,Phone,latitude,longitude,Amenities (This includes a relative price indicator using $ signs),RecordID,Web,Booking,Comments,Rating,Reviews
+    """
+
+    print("get_rv_parks_by_distance_from_any_location:",miles,latitude,longitude,includeDetails)
+    location=get_my_location()
+    lat=latitude
+    long=longitude
     min_lat, max_lat, min_lon, max_lon = lat_lon_range(lat,long,miles)
     conn = get_db_connection()
     cursor = conn.cursor()
-    select =   "SELECT name,longitude,latitude,city,st FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    if includeDetails:
+        select =   "SELECT * FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    else:
+        select =   "SELECT name,longitude,latitude,city,st FROM rv_park where latitude>={:.4f} and latitude <={:.4f} and longitude>={:.4f} and longitude<={:.4f}".format(min_lat, max_lat, min_lon, max_lon)
+    print(select)
     cursor.execute(select)
     rows = cursor.fetchall()
     conn.close()
@@ -293,4 +323,5 @@ if __name__ == '__main__':
     # print(get_location_by_name('Blue Bell',"pa"))
     # print(get_location())
     # print(get_state_parks_by_distance_from_my_location(10,rvOnly=False,includeDetails=True))
+    # print(get_rv_parks_by_distance_from_my_location(10,includeDetails=False))
     mcp.run(transport="streamable-http")
