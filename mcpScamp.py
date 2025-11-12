@@ -10,6 +10,7 @@ from datetime import datetime,timezone
 from timezonefinder import TimezoneFinder
 from mcp.server.fastmcp import FastMCP
 from config_reader import ConfigReader
+import urllib.parse
 
 
 
@@ -274,8 +275,8 @@ def get_location_by_name(name: str,state : str ) -> dict:
     Gets the latitude and longitude of a location specified by the name and state of the location
     Use this for any locations other than finding the current location
     Args:
-        name: The name of the town, city or geographic point of interest
-        state: The US state containing the named location  
+        name(string:required): The name of the town, city or geographic point of interest
+        state(string:required): The US state containing the named location . This is the 2 letter abbreviated state name i.e. Pennsylvania is PA
     """
     print("get_location_by_name",name,state)
     conn = get_db_connection()
@@ -319,9 +320,32 @@ def get_local_time() -> str:
     local_time = utc_now.astimezone(tz)
     return local_time.isoformat()
 
+@mcp.tool()
+def get_wikipedia_url(searchTerm:str) -> str:
+    """
+    Returns a url that will is a link to a local wikipedia instance.
+    Use this tool when the user prompt starts with "Tell me about ..." . 
+    If this tool is triggered then only content returned to the used should be a clickable link based on the url returned by this tool.
+    Args:
+        searchTerm(string:required): String used in the wikipedia search
+    """
+    return "http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&pattern=" + urllib.parse.quote(searchTerm)
+
+@mcp.tool()
+def get_wikihow_url(searchTerm:str) -> str:
+    """
+    Returns a url that will is a link to a local wikihow instance.
+    Use this tool when the user prompt starts with "Tell me how to ..." or "How do I ...". 
+    If this tool is triggered then only content returned to the used should be a clickable link based on the url returned by this tool.
+    Args:
+        searchTerm(string:required): String used in the wikihow search
+    """
+    return "http://piai.local:8080/viewer#search?books.name=wikihow_en_maxi_2022-12&pattern=" + urllib.parse.quote(searchTerm)
+
 if __name__ == '__main__':
     # print(get_location_by_name('Blue Bell',"pa"))
     # print(get_location())
     # print(get_state_parks_by_distance_from_my_location(10,rvOnly=False,includeDetails=True))
     # print(get_rv_parks_by_distance_from_my_location(10,includeDetails=False))
+    # print(get_wikipedia_url("model context protocol"))
     mcp.run(transport="streamable-http")
