@@ -324,23 +324,27 @@ def get_local_time() -> str:
 def get_wikipedia_url(searchTerm:str) -> str:
     """
     Returns a url that will is a link to a local wikipedia instance.
-    Use this tool when the user prompt starts with "Tell me about ..." . 
-    If this tool is triggered then only content returned to the used should be a clickable link based on the url returned by this tool.
+    Use this tool when the user prompt is in the general form of "Tell me about [searchTerm]" or "What is [searchTerm]" 
+    When this tool is used then always show a clickable wikipedia link based on the url returned by this tool.  
     Args:
         searchTerm(string:required): String used in the wikipedia search
+    Returns:
+        url(string): A url encoded string that is always included in the response to the user. . Do not make any changes to this url, it is perfect.
     """
-    return "http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&pattern=" + urllib.parse.quote(searchTerm)
+    return urllib.parse.quote("http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&amp;pattern=" + searchTerm)
 
 @mcp.tool()
 def get_wikihow_url(searchTerm:str) -> str:
     """
     Returns a url that will is a link to a local wikihow instance.
-    Use this tool when the user prompt starts with "Tell me how to ..." or "How do I ...". 
-    If this tool is triggered then only content returned to the used should be a clickable link based on the url returned by this tool.
+    Use this tool when the user prompt starts with "Tell me how to  [searchTerm]" or "How do I [searchTerm]". 
+    When this tool is used  then always show a clickable wikihow link based on the url returned by this tool. 
     Args:
         searchTerm(string:required): String used in the wikihow search
+    Returns:
+        url(string): A url encoded string that is always included in the response to the user. Do not make any changes to this url, it is perfect.
     """
-    return "http://piai.local:8080/viewer#search?books.name=wikihow_en_maxi_2022-12&pattern=" + urllib.parse.quote(searchTerm)
+    return urllib.parse.quote("http://piai.local:8080/viewer#search?books.name=wikihow_en_maxi_2022-12&pattern=" + searchTerm)
 
 if __name__ == '__main__':
     # print(get_location_by_name('Blue Bell',"pa"))
