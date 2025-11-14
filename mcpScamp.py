@@ -321,30 +321,51 @@ def get_local_time() -> str:
     return local_time.isoformat()
 
 @mcp.tool()
-def get_wikipedia_url(searchTerm:str) -> str:
+def get_wikipedia_url(topic: str) -> str:
     """
-    Returns a url that will is a link to a local wikipedia instance.
-    Use this tool when the user prompt is in the general form of "Tell me about [searchTerm]" or "What is [searchTerm]" 
-    When this tool is used then always show a clickable wikipedia link based on the url returned by this tool.  
-    Args:
-        searchTerm(string:required): String used in the wikipedia search
-    Returns:
-        url(string): A url encoded string that is always included in the response to the user. . Do not make any changes to this url, it is perfect.
+    Generates a URL linking to the local Wikipedia instance for the given search term.
+
+    **Purpose:**
+    Use this tool whenever the user asks for wikipedia reference to the topic. The tool returns a pre-formatted,
+    ready-to-use link to the local Wikipedia mirror.
+
+    **LLM Behavior:**
+    - Always include the returned URL in the response as a clickable Wikipedia link.
+    - Do not alter, reformat, or append anything to the URL.
+    - Do not summarize or explain the URL — just display it as-is with your answer.
+    - Format the link's text as "Wikipedia - [topic]"
+
+
+    **Arguments:**
+        topic (str): The term or topic to look up.
+
+    **Returns:**
+        str: A fully URL-encoded link to the local Wikipedia instance.
     """
-    return urllib.parse.quote("http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&amp;pattern=" + searchTerm)
+    return "http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&pattern=" + urllib.parse.quote(topic)
 
 @mcp.tool()
-def get_wikihow_url(searchTerm:str) -> str:
+def get_wikihow_url(topic:str) -> str:
     """
-    Returns a url that will is a link to a local wikihow instance.
-    Use this tool when the user prompt starts with "Tell me how to  [searchTerm]" or "How do I [searchTerm]". 
-    When this tool is used  then always show a clickable wikihow link based on the url returned by this tool. 
-    Args:
-        searchTerm(string:required): String used in the wikihow search
-    Returns:
-        url(string): A url encoded string that is always included in the response to the user. Do not make any changes to this url, it is perfect.
+    Generates a URL linking to the local Wikihow instance for the given search term.
+
+    **Purpose:**
+    Use this tool whenever the user asks for wikihow reference to the topic or specifically asks "How do I [topic]". The tool returns a pre-formatted,
+    ready-to-use link to the local Wikihow mirror.
+
+    **LLM Behavior:**
+    - Always include the returned URL in the response as a clickable Wikihow link.
+    - Do not alter, reformat, or append anything to the URL.
+    - Do not summarize or explain the URL — just display it as-is with your answer.
+    - Format the link's text as "Wikihow - [topic]"
+
+    **Arguments:**
+        topic (str): The term or topic to look up.
+
+    **Returns:**
+        str: A fully URL-encoded link to the local Wikihow instance.
     """
-    return urllib.parse.quote("http://piai.local:8080/viewer#search?books.name=wikihow_en_maxi_2022-12&pattern=" + searchTerm)
+    return "http://piai.local:8080/viewer#search?books.name=wikihow_en_maxi_2022-12&pattern=" + urllib.parse.quote(topic)
 
 if __name__ == '__main__':
     # print(get_location_by_name('Blue Bell',"pa"))
