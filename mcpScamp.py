@@ -347,17 +347,18 @@ def get_wikipedia_url(topic: str) -> str:
 @mcp.tool()
 def get_wikihow_url(topic:str) -> str:
     """
-    Generates a URL linking to the local Wikihow instance for the given search term.
+    Generates a wikihow URL linking to the local Wikihow instance for the given search term.
 
     **Purpose:**
     Use this tool whenever the user asks for wikihow reference to the topic or specifically asks "How do I [topic]". The tool returns a pre-formatted,
-    ready-to-use link to the local Wikihow mirror.
+    ready-to-use link.
 
     **LLM Behavior:**
-    - Always include the returned URL in the response as a clickable Wikihow link.
+    - Show the user the wikihow url. Keep the rest of the response very short.
     - Do not alter, reformat, or append anything to the URL.
     - Do not summarize or explain the URL — just display it as-is with your answer.
     - Format the link's text as "Wikihow - [topic]"
+
 
     **Arguments:**
         topic (str): The term or topic to look up.
