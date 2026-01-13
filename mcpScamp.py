@@ -89,7 +89,7 @@ def get_db_connection():
     return conn
 
 # Tool: return location as latitude and longitude
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_my_location() -> dict:
     """Return the current location as latitude, longitude and altitude(meters).
        Only use this for finding my current location, not for other locations.
@@ -118,7 +118,7 @@ def get_my_location() -> dict:
     except json.JSONDecodeError:
         print("Error: Invalid JSON format.")
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_state_parks_details_by_name(name: str ) -> str:
     """
     Gets a detailed information about a specific pennsylvania state park by name.
@@ -135,7 +135,7 @@ def get_state_parks_details_by_name(name: str ) -> str:
     park = [dict(row) for row in rows]  # Convert to list of dictionaries items
     return json.dumps(park)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_state_parks_by_distance_from_my_location(miles: int, rvOnly:bool=False,includeDetails:bool=False) -> str:
     """
     Find Pennsylvania state parks within miles of the current location. 
@@ -155,7 +155,7 @@ def get_state_parks_by_distance_from_my_location(miles: int, rvOnly:bool=False,i
     long=float(location.get("longitude",0))
     return get_state_parks_by_distance_from_any_location(lat,long,miles,rvOnly,includeDetails)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float,miles: int, rvOnly:bool=False,includeDetails:bool=False) -> str:
     """
     Find Pennsylvania state parks within miles of the given latitude/longitude. 
@@ -195,7 +195,7 @@ def get_state_parks_by_distance_from_any_location(latitude:float,longitude:float
         parkAndDistance.append(park)
     return json.dumps(parkAndDistance)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_rv_parks_by_distance_from_my_location(miles: int , includeDetails:bool=False) -> str:
     """
     Find RV parks within miles of my the current location. 
@@ -214,7 +214,7 @@ def get_rv_parks_by_distance_from_my_location(miles: int , includeDetails:bool=F
     long=float(location.get("longitude",0))
     return get_rv_parks_by_distance_from_any_location(lat,long,miles,includeDetails)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_rv_parks_by_distance_from_any_location(latitude:float,longitude:float,miles: int, includeDetails:bool=False) -> str:
     """
     Find RV parks within miles of the given latitude/longitude. 
@@ -252,7 +252,7 @@ def get_rv_parks_by_distance_from_any_location(latitude:float,longitude:float,mi
         parkAndDistance.append(park)
     return json.dumps(parkAndDistance)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_rv_parks_details_by_name(name: str ) -> str:
     """
     Gets a detailed information about a specific RV park by name
@@ -269,7 +269,7 @@ def get_rv_parks_details_by_name(name: str ) -> str:
     park = [dict(row) for row in rows]  # Convert to list of dictionaries items
     return json.dumps(park)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_location_by_name(name: str,state : str ) -> dict:
     """
     Gets the latitude and longitude of a location specified by the name and state of the location
@@ -292,14 +292,14 @@ def get_location_by_name(name: str,state : str ) -> dict:
     return location
 
 # Tool: return current UTC time
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_UTC_time() -> str:
     """Return the current UTC date and time as an ISO 8601 string."""
     print("get_UTC_time")
     return datetime.now(timezone.utc).replace(tzinfo=pytz.utc).isoformat()
 
 # Tool: return local time by latitude & longitude
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_local_time() -> str:
     """
     Return the local date and time based on the current location timezone.
@@ -320,7 +320,7 @@ def get_local_time() -> str:
     local_time = utc_now.astimezone(tz)
     return local_time.isoformat()
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_wikipedia_url(topic: str) -> str:
     """
     Generates a URL linking to the local Wikipedia instance for the given search term.
@@ -344,7 +344,7 @@ def get_wikipedia_url(topic: str) -> str:
     """
     return "http://piai.local:8080/viewer#search?books.name=wikipedia_en_all_maxi_2025-08&pattern=" + urllib.parse.quote(topic)
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 def get_wikihow_url(topic:str) -> str:
     """
     Generates a wikihow URL linking to the local Wikihow instance for the given search term.
